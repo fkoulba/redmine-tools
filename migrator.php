@@ -255,7 +255,7 @@ class Migrator {
       $wikiContentOld['page_id'] = $this->wikiPagesMapping[$idWikiPageOld];
 
       $idWikiContentNew = $this->dbNew->insert('wiki_contents', $wikiContentOld);
-      $this->wikiContentsMapping[$wikiContentOld] = $idWikiContentNew;
+      $this->wikiContentsMapping[$idWikiContentOld] = $idWikiContentNew;
 
       $this->migrateWikiContentVersions($idWikiContentOld);
     }
