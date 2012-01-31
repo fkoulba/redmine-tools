@@ -15,7 +15,7 @@
   * All modifications of the target database are live. So it is strongly advised to test against a dummy database first.
   *
   * USAGE:
-  *   1. update manual mapping for users and priorities (see $usersMapping and $prioritiesMapping)
+  *   1. update manual mapping for users, priorities and enumerations (see $usersMapping, $prioritiesMapping and $enumerationsMapping)
   *   2. update database connection data and project ID to migrate
   *   3. run the script
   */
@@ -39,6 +39,11 @@ class Migrator {
     17 => 5,
     18 => 6,
     19 => 7,
+  );
+
+  var $enumerationsMapping = array(
+    1 => 1,
+    2 => 2,
   );
 
   var $projectsMapping = array();
@@ -202,7 +207,7 @@ class Migrator {
 
       // Update fields for new version of document
       $documentOld['project_id'] = $this->projectsMapping[$idProjectOld];
-      $documentOld['category_id'] = $this->categoriesMapping[$documentOld['category_id']];
+      $documentOld['category_id'] = $this->enumerationsMapping[$documentOld['category_id']];
 
       $idDocumentNew = $this->dbNew->insert('documents', $documentOld);
       $this->documentsMapping[$idDocumentOld] = $idDocumentNew;
