@@ -50,7 +50,8 @@ class Migrator
 	var $issuesMapping = array();
 	var $timeEntriesMapping = array();
 	var $modulesMapping = array();
-	
+	var $documentsMapping = array();
+
 	function __construct($host1, $db1, $user1, $pass1, $host2, $db2, $user2, $pass2)
 	{	
 		$this->dbOld = new DBMysql($host1, $user1, $pass1);
@@ -207,6 +208,24 @@ class Migrator
 		}
 	}
 	
+	private function migrateDocuments($idProjectOld)
+	{
+		$result = $this->dbOld->select('documents', array('project_id' => $idProjectOld));
+		$documentsOld = $this->dbOld->getAssocArrays($result);
+		foreach ($documentsOld as $documentOld)
+		{
+			$idDocumentOld = $documentOld['id'];
+			unset($documentOld['id']);
+
+			// Update fields for new version of document
+			$documentOld['project_id'] = $this->projectsMapping[$idProjectOld];
+			$documentOld['category_id'] = $this->categoriesMapping[$documentOld['category_id']];
+
+			$idDocumentNew = $this->dbNew->insert('documents', $documentOld);
+			$this->documentsMapping[$idDocumentOld] = $idDocumentNew;
+		}
+	}
+
 	function migrateProject($idProjectOld)
 	{
 		$result = $this->dbOld->select('projects', array('id' => $idProjectOld));
@@ -223,6 +242,7 @@ class Migrator
 			$this->migrateIssues($idProjectOld);
 			$this->migrateTimeEntries($idProjectOld);
 			$this->migrateModules($idProjectOld);
+			$this->migrateDocuments($idProjectOld);
 		}
 		
 		echo 'projects: ' . count($this->projectsMapping) . " <br>\n";
@@ -232,6 +252,7 @@ class Migrator
 		echo 'journals: ' . count($this->journalsMapping) . " <br>\n";
 		echo 'time entries: ' . count($this->timeEntriesMapping) . " <br>\n";
 		echo 'modules enabled: ' . count($this->modulesMapping) . " <br>\n";		
+		echo 'documents: ' . count($this->documentsMapping) . " <br>\n";
 	}
 }
 
