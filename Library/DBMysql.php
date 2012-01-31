@@ -158,6 +158,8 @@ class DBMysql {
   protected function addQuotes(&$item, $key) {
     if($item == '') {
       $item = '""';
+    } elseif ($item == 'NULL') {
+      ; // FIXME: dirty hack - do nothing when emulating MySQL's NULL
     } else {
       $item = "'".$this->escapeStr($item)."'";
     }
@@ -282,7 +284,11 @@ class DBMysql {
 
     if(!empty($clauses)){
       foreach($clauses as $key => $value) {
-        $clauses2Sql[] = "`$key`=$value";
+        if ($value == 'NULL') {
+          $clauses2Sql[] = "`$key` IS NULL";
+        } else {
+          $clauses2Sql[] = "`$key`=$value";
+        }
       }
       $query .= " WHERE ".implode(' AND ',array_values($clauses2Sql))."";
     }

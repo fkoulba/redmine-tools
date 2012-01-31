@@ -49,6 +49,10 @@ class Migrator {
   var $timeEntriesMapping = array();
   var $modulesMapping = array();
   var $documentsMapping = array();
+  var $wikisMapping = array();
+  var $wikiPagesMapping = array();
+  var $wikiContentsMapping = array();
+  var $wikiContentVersionsMapping = array();
 
   function __construct($host1, $db1, $user1, $pass1, $host2, $db2, $user2, $pass2) {
     $this->dbOld = new DBMysql($host1, $user1, $pass1);
@@ -205,6 +209,73 @@ class Migrator {
     }
   }
 
+  private function migrateWikis($idProjectOld) {
+    $result = $this->dbOld->select('wikis', array('project_id' => $idProjectOld));
+    $wikisOld = $this->dbOld->getAssocArrays($result);
+    foreach ($wikisOld as $wikiOld) {
+      $idWikiOld = $wikiOld['id'];
+      unset($wikiOld['id']);
+
+      // Update fields for new version of wiki
+      $wikiOld['project_id'] = $this->projectsMapping[$idProjectOld];
+
+      $idWikiNew = $this->dbNew->insert('wikis', $wikiOld);
+      $this->wikisMapping[$idWikiOld] = $idWikiNew;
+
+      $this->migrateWikiPages($idWikiOld);
+    }
+  }
+
+  private function migrateWikiPages($idWikiOld, $idParent = null) {
+    $result = $this->dbOld->select('wiki_pages', array('wiki_id' => $idWikiOld, 'parent_id' => empty($idParent) ? 'NULL' : $idParent));
+    $wikiPagesOld = $this->dbOld->getAssocArrays($result);
+    foreach ($wikiPagesOld as $wikiPageOld) {
+      $idWikiPageOld = $wikiPageOld['id'];
+      unset($wikiPageOld['id']);
+
+      // Update fields for new version of wiki_page
+      $wikiPageOld['wiki_id'] = $this->wikisMapping[$idWikiOld];
+
+      $idWikiPageNew = $this->dbNew->insert('wiki_pages', $wikiPageOld);
+      $this->wikiPagesMapping[$idWikiPageOld] = $idWikiPageNew;
+
+      $this->migrateWikiContents($idWikiPageOld);
+      $this->migrateWikiPages($idWikiOld, $idWikiPageOld);
+    }
+  }
+
+  private function migrateWikiContents($idWikiPageOld) {
+    $result = $this->dbOld->select('wiki_contents', array('page_id' => $idWikiPageOld));
+    $wikiContentsOld = $this->dbOld->getAssocArrays($result);
+    foreach ($wikiContentsOld as $wikiContentOld) {
+      $idWikiContentOld = $wikiContentOld['id'];
+      unset($wikiContentOld['id']);
+
+      // Update fields for new version of wiki_content
+      $wikiContentOld['page_id'] = $this->wikiPagesMapping[$idWikiPageOld];
+
+      $idWikiContentNew = $this->dbNew->insert('wiki_contents', $wikiContentOld);
+      $this->wikiContentsMapping[$wikiContentOld] = $idWikiContentNew;
+
+      $this->migrateWikiContentVersions($idWikiContentOld);
+    }
+  }
+
+  private function migrateWikiContentVersions($idWikiContentOld) {
+    $result = $this->dbOld->select('wiki_content_versions', array('wiki_content_id' => $idWikiContentOld));
+    $wikiContentVersionsOld = $this->dbOld->getAssocArrays($result);
+    foreach ($wikiContentVersionsOld as $wikiContentVersionOld) {
+      $idWikiContentVersionOld = $wikiContentVersionOld['id'];
+      unset($wikiContentVersionOld['id']);
+
+      // Update fields for new version of wiki_content
+      $wikiContentVersionOld['wiki_content_id'] = $this->wikiContentsMapping[$idWikiContentOld];
+
+      $idWikiContentVersionNew = $this->dbNew->insert('wiki_content_versions', $wikiContentVersionOld);
+      $this->wikiContentVersionsMapping[$idWikiContentVersionOld] = $idWikiContentVersionNew;
+    }
+  }
+
   function migrateProject($idProjectOld) {
     $result = $this->dbOld->select('projects', array('id' => $idProjectOld));
     $projectsOld = $this->dbOld->getAssocArrays($result);
@@ -220,6 +291,7 @@ class Migrator {
       $this->migrateTimeEntries($idProjectOld);
       $this->migrateModules($idProjectOld);
       $this->migrateDocuments($idProjectOld);
+      $this->migrateWikis($idProjectOld);
     }
 
     echo 'projects: ' . count($this->projectsMapping) . " <br>\n";
@@ -230,6 +302,10 @@ class Migrator {
     echo 'time entries: ' . count($this->timeEntriesMapping) . " <br>\n";
     echo 'modules enabled: ' . count($this->modulesMapping) . " <br>\n";
     echo 'documents: ' . count($this->documentsMapping) . " <br>\n";
+    echo 'wikis: ' . count($this->wikisMapping) . " <br>\n";
+    echo 'wiki pages: ' . count($this->wikiPagesMapping) . " <br>\n";
+    echo 'wiki contents: ' . count($this->wikiContentsMapping) . " <br>\n";
+    echo 'wiki content versions: ' . count($this->wikiContentVersionsMapping) . " <br>\n";
   }
 }
 
@@ -241,3 +317,4 @@ $migrator = new Migrator(
 $migrator->migrateProject(4);
 
 ?>
+
