@@ -330,6 +330,8 @@ class Migrator {
       $this->migrateAttachments('Project', $idProjectOld, $idProjectNew);
     }
 
+    file_put_contents('attachments.txt', join("\n", $this->attachmentsList) . "\n");
+
     echo 'projects: ' . count($this->projectsMapping) . " <br>\n";
     echo 'issues: ' . count($this->issuesMapping) . " <br>\n";
     echo 'categories: ' . count($this->categoriesMapping) . " <br>\n";
@@ -342,6 +344,7 @@ class Migrator {
     echo 'wiki pages: ' . count($this->wikiPagesMapping) . " <br>\n";
     echo 'wiki contents: ' . count($this->wikiContentsMapping) . " <br>\n";
     echo 'wiki content versions: ' . count($this->wikiContentVersionsMapping) . " <br>\n";
+    echo 'attachments: ' . count($this->attachmentsMapping) . " (see attachments.txt) <br>\n";
   }
 }
 
