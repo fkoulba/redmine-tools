@@ -200,7 +200,6 @@ class Migrator {
       $issueOld['project_id'] = $this->projectsMapping[$idProjectOld];
       $issueOld['tracker_id'] = $this->trackersMapping[$issueOld['tracker_id']];
       $issueOld['status_id'] = $this->issueStatusesMapping[$issueOld['status_id']];
-      $issueOld['assigned_to_id'] = $this->replaceUser($issueOld['assigned_to_id']);
       $issueOld['author_id'] = $this->replaceUser($issueOld['author_id']);
       $issueOld['assigned_to_id'] = $this->replaceUser($issueOld['assigned_to_id']);
       $issueOld['priority_id'] = $this->replacePriority($issueOld['priority_id']);
