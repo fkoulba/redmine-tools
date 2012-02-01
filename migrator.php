@@ -60,6 +60,8 @@ class Migrator {
   var $wikiPagesMapping = array();
   var $wikiContentsMapping = array();
   var $wikiContentVersionsMapping = array();
+  var $attachmentsMapping = array();
+  var $attachmentsList = array();
 
   function __construct($host1, $db1, $user1, $pass1, $host2, $db2, $user2, $pass2) {
     $this->dbOld = new DBMysql($host1, $user1, $pass1);
@@ -113,6 +115,8 @@ class Migrator {
 
       $idVersionNew = $this->dbNew->insert('versions', $versionOld);
       $this->versionsMapping[$idVersionOld] = $idVersionNew;
+
+      $this->migrateAttachments('Version', $idVersionOld, $idVersionNew);
     }
   }
 
@@ -197,6 +201,8 @@ class Migrator {
       $this->issuesMapping[$idIssueOld] = $idIssueNew;
 
       $this->migrateJournals($idIssueOld);
+
+      $this->migrateAttachments('Issue', $idIssueOld, $idIssueNew);
     }
   }
 
@@ -213,6 +219,8 @@ class Migrator {
 
       $idDocumentNew = $this->dbNew->insert('documents', $documentOld);
       $this->documentsMapping[$idDocumentOld] = $idDocumentNew;
+
+      $this->migrateAttachments('Document', $idDocumentOld, $idDocumentNew);
     }
   }
 
@@ -248,6 +256,8 @@ class Migrator {
 
       $this->migrateWikiContents($idWikiPageOld);
       $this->migrateWikiPages($idWikiOld, $idWikiPageOld);
+
+      $this->migrateAttachments('WikiPage', $idWikiPageOld, $idWikiPageNew);
     }
   }
 
@@ -283,6 +293,24 @@ class Migrator {
     }
   }
 
+  private function migrateAttachments($containerType, $oldContainerId, $newContainerId) {
+    $result = $this->dbOld->select('attachments', array('container_id' => $oldContainerId, 'container_type' => $containerType));
+    $attachmentsOld = $this->dbOld->getAssocArrays($result);
+    foreach ($attachmentsOld as $attachmentOld) {
+      $idAttachmentOld = $attachmentOld['id'];
+      unset($attachmentOld['id']);
+
+      // Update fields for new version of attachment
+      $attachmentOld['container_id'] = $newContainerId;
+      $attachmentOld['author_id'] = $this->usersMapping[$attachmentOld['author_id']];
+
+      $idAttachmentNew = $this->dbNew->insert('attachments', $attachmentOld);
+      $this->attachmentsMapping[$idAttachmentOld] = $idAttachmentNew;
+
+      $this->attachmentsList[] = $attachmentOld['disk_filename'];
+    }
+  }
+
   function migrateProject($idProjectOld) {
     $result = $this->dbOld->select('projects', array('id' => $idProjectOld));
     $projectsOld = $this->dbOld->getAssocArrays($result);
@@ -299,6 +327,7 @@ class Migrator {
       $this->migrateModules($idProjectOld);
       $this->migrateDocuments($idProjectOld);
       $this->migrateWikis($idProjectOld);
+      $this->migrateAttachments('Project', $idProjectOld, $idProjectNew);
     }
 
     echo 'projects: ' . count($this->projectsMapping) . " <br>\n";
