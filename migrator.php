@@ -10,6 +10,8 @@
   *   - journals
   *   - logged time
   *   - modules status (wether it is active for the project)
+  *   - documents
+  *   - wikis
   *
   * It relies on manual mapping for users and priorities as they should already exist in target database.
   * All modifications of the target database are live. So it is strongly advised to test against a dummy database first.
