@@ -59,6 +59,7 @@ class Migrator {
   var $versionsMapping = array();
   var $journalsMapping = array();
   var $issuesMapping = array();
+  var $issueRelationsMapping = array();
   var $timeEntriesMapping = array();
   var $modulesMapping = array();
   var $documentsMapping = array();
@@ -214,6 +215,26 @@ class Migrator {
     }
   }
 
+  private function migrateIssueRelations() {
+    $result = $this->dbOld->select('issue_relations');
+    $issueRelationsOld = $this->dbOld->getAssocArrays($result);
+    foreach ($issueRelationsOld as $issueRelationOld) {
+      $idIssueRelationOld = $issueRelationOld['id'];
+      unset($issueRelationOld['id']);
+
+      if (!isset($this->issuesMapping[$issueRelationOld['issue_from_id']]) or !isset($this->issuesMapping[$issueRelationOld['issue_to_id']])) {
+          continue;
+      }
+
+      // Update fields for new version of issueRelation
+      $issueRelationOld['issue_from_id'] = $this->issuesMapping[$issueRelationOld['issue_from_id']];
+      $issueRelationOld['issue_to_id'] = $this->issuesMapping[$issueRelationOld['issue_to_id']];
+
+      $idIssueRelationNew = $this->dbNew->insert('issue_relations', $issueRelationOld);
+      $this->issueRelationsMapping[$idIssueRelationOld] = $idIssueRelationNew;
+    }
+  }
+
   private function migrateDocuments($idProjectOld) {
     $result = $this->dbOld->select('documents', array('project_id' => $idProjectOld));
     $documentsOld = $this->dbOld->getAssocArrays($result);
@@ -331,6 +352,7 @@ class Migrator {
       $this->migrateCategories($idProjectOld);
       $this->migrateVersions($idProjectOld);
       $this->migrateIssues($idProjectOld);
+      $this->migrateIssueRelations();
       $this->migrateTimeEntries($idProjectOld);
       $this->migrateModules($idProjectOld);
       $this->migrateDocuments($idProjectOld);
@@ -342,6 +364,7 @@ class Migrator {
 
     echo 'projects: ' . count($this->projectsMapping) . " <br>\n";
     echo 'issues: ' . count($this->issuesMapping) . " <br>\n";
+    echo 'issue relations: ' . count($this->issueRelationsMapping) . " <br>\n";
     echo 'categories: ' . count($this->categoriesMapping) . " <br>\n";
     echo 'versions: ' . count($this->versionsMapping) . " <br>\n";
     echo 'journals: ' . count($this->journalsMapping) . " <br>\n";
